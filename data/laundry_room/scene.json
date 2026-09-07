@@ -1,0 +1,17 @@
+{
+  "name": "Laundry room",
+  "source_scene": "A_bridhgt_laundry_room-2025-07-27-14-48-35-673277",
+  "sensor_xyz_m": [
+    1.0,
+    2.75,
+    0.85
+  ],
+  "person_distance_m": 0.55,
+  "person_range_gate_m": [0.1, 0.8],
+  "scene_extent_xy_m": [
+    3.0,
+    4.0
+  ],
+  "rooms": 1,
+  "meshes": 19
+}

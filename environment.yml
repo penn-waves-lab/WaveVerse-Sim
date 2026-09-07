@@ -1,0 +1,24 @@
+name: waveverse-sim
+channels: [conda-forge]
+dependencies:
+  - python=3.10
+  - pip
+  - setuptools>=61
+  - wheel
+  - pip:
+      # Sionna 0.19.2 is pinned to this TF line; newer TF breaks the RT solver.
+      - tensorflow[and-cuda]==2.15.1
+      - numpy==1.26.4
+      - mitsuba==3.5.2
+      - drjit==0.4.6
+      - trimesh
+      - scipy          # Matching human correspondence coordinates to mesh vertices
+      - pillow
+      - matplotlib
+      - ipywidgets      # sionna.rt.previewer imports this at module load
+      # Required by the accelerated simulation workflows. The TensorFlow CUDA
+      # extra supplies CUDA 12.2 runtime libraries; NVRTC compiles our kernels.
+      - cupy-cuda12x==13.4.0
+      - nvidia-cuda-nvrtc-cu12==12.2.140
+      - -e ./third_party/sionna
+      - -e .

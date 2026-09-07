@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scene version="3.0.0">
+    <default name="integrator" value="path" />
+    <default name="spp" value="128" />
+    <default name="resy" value="1024" />
+    <default name="resx" value="1720" />
+    <default name="max_depth" value="5" />
+    <integrator type="$integrator">
+        <integer name="max_depth" value="$max_depth" />
+    </integrator>
+    <emitter type="constant">
+        <rgb name="radiance" value="1.0" />
+    </emitter>
+    <sensor type="perspective">
+        <float name="fov" value="55" />
+        <transform name="to_world">
+            <lookat origin="5 3 10" target="5.0 3.1 1.1" up="0.0 0.0 1.0" />
+        </transform>
+        <sampler type="independent">
+            <integer name="sample_count" value="$spp" />
+        </sampler>
+        <film type="hdrfilm">
+            <integer name="width" value="$resx" />
+            <integer name="height" value="$resy" />
+            <string name="file_format" value="openexr" />
+            <string name="pixel_format" value="rgb" />
+            <rfilter type="tent" />
+        </film>
+    </sensor>
+    <shape type="ply" id="washing_machine_0_laundry_room_a7fc42">
+        <string name="filename" value="meshes/washing_machine_0_laundry_room_a7fc42.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="dryer_0_laundry_room_6943de">
+        <string name="filename" value="meshes/dryer_0_laundry_room_6943de.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="storage_cabinet_0_laundry_room_e9da35">
+        <string name="filename" value="meshes/storage_cabinet_0_laundry_room_e9da35.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="folding_station_table_0_laundry_room_a36fbc">
+        <string name="filename" value="meshes/folding_station_table_0_laundry_room_a36fbc.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="pegboard_with_hooks_0_laundry_room_b6363e">
+        <string name="filename" value="meshes/pegboard_with_hooks_0_laundry_room_b6363e.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_mounted_shelf_0_laundry_room_601f68">
+        <string name="filename" value="meshes/wall_mounted_shelf_0_laundry_room_601f68.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_mounted_shelf_2_laundry_room_11a093">
+        <string name="filename" value="meshes/wall_mounted_shelf_2_laundry_room_11a093.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="lint_roller_0_dryer_0_laundry_room_248507">
+        <string name="filename" value="meshes/lint_roller_0_dryer_0_laundry_room_248507.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="fabric_softener_0_washing_machine_0_laundry_room_0ac212">
+        <string name="filename" value="meshes/fabric_softener_0_washing_machine_0_laundry_room_0ac212.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_mounted_shelf_1_laundry_room_Light_">
+        <string name="filename" value="meshes/wall_mounted_shelf_1_laundry_room_Light_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="towels_0_storage_cabinet_0_laundry_room_Cloth_">
+        <string name="filename" value="meshes/towels_0_storage_cabinet_0_laundry_room_Cloth_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="folded_laundry_2_folding_station_table_0_laundry_room_Cloth_">
+        <string name="filename" value="meshes/folded_laundry_2_folding_station_table_0_laundry_room_Cloth_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_laundry_room_west_0_">
+        <string name="filename" value="meshes/wall_laundry_room_west_0_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_laundry_room_north_1_">
+        <string name="filename" value="meshes/wall_laundry_room_north_1_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_laundry_room_east_2_">
+        <string name="filename" value="meshes/wall_laundry_room_east_2_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="wall_laundry_room_south_3_">
+        <string name="filename" value="meshes/wall_laundry_room_south_3_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="window_wall_laundry_room_east_2_0_window">
+        <string name="filename" value="meshes/window_wall_laundry_room_east_2_0_window.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="door_0_exterior_laundry_room_doorwa">
+        <string name="filename" value="meshes/door_0_exterior_laundry_room_doorwa.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <shape type="ply" id="laundry_room_">
+        <string name="filename" value="meshes/laundry_room_.ply" />
+        <ref id="mat-itu_concrete" name="bsdf" />
+    </shape>
+    <bsdf type="twosided" id="mat-itu_concrete">
+        <bsdf type="diffuse">
+            <rgb value="0.984314 0.705882 0.682353" name="reflectance" />
+        </bsdf>
+    </bsdf>
+</scene>

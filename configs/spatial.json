@@ -1,0 +1,25 @@
+{
+  "workflow": "spatial",
+  "xml": "../data/laundry_room/laundry_room.xml",
+  "output": "../results/spatial",
+  "sensor": [[1.0, 2.75, 0.85]],
+  "scattering": true,
+  "specular_only": false,
+  "compare_coherence": true,
+  "n_azimuths": 1200,
+  "num_samples": 100000,
+  "max_depth": 3,
+  "chunk": 100,
+  "vmin": -0.1,
+  "materials": {
+    "itu_wood_ex": {"relative_permittivity": 1.99, "conductivity": 0.494, "scattering_coefficient": 0.5, "alpha_r": 10},
+    "itu_paper": {"relative_permittivity": 2.0, "conductivity": 0.369, "scattering_coefficient": 0.45, "alpha_r": 10},
+    "itu_metal_ex": {"relative_permittivity": 1.0, "conductivity": 10000000.0, "scattering_coefficient": 0.1, "alpha_r": 10},
+    "itu_glass_ex": {"relative_permittivity": 6.31, "conductivity": 1.211, "scattering_coefficient": 0.15, "alpha_r": 10},
+    "itu_plasterboard_ex": {"relative_permittivity": 2.73, "conductivity": 0.503, "scattering_coefficient": 0.55, "alpha_r": 10},
+    "itu_plywood_ex": {"relative_permittivity": 2.71, "conductivity": 0.330, "scattering_coefficient": 0.45, "alpha_r": 10},
+    "itu_fabric": {"relative_permittivity": 1.8, "conductivity": 0.275, "scattering_coefficient": 0.8, "alpha_r": 10},
+    "itu_ceramic": {"relative_permittivity": 8.5, "conductivity": 2.753, "scattering_coefficient": 0.3, "alpha_r": 10}
+  },
+  "material_assignments": {}
+}

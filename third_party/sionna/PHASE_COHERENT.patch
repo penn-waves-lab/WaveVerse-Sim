@@ -1,0 +1,321 @@
+diff --git a/sionna/rt/itu_materials.py b/sionna/rt/itu_materials.py
+index 9f16a3a..4cdcd59 100644
+--- a/sionna/rt/itu_materials.py
++++ b/sionna/rt/itu_materials.py
+@@ -6,6 +6,7 @@
+ Instantiates a set of radio materials for the scene objects.
+ These materials are from Table 3 of the Recommendation ITU-R P.2040-2.
+ """
++from functools import partial
+
+ import numpy as np
+ from .radio_material import RadioMaterial
+@@ -299,3 +300,67 @@ def instantiate_itu_materials(dtype):
+                        frequency_update_callback=wet_ground_properties,
+                        dtype=dtype)
+     scene.Scene().add(rm)
++
++
++    #########################################
++    # extended materials
++    #########################################
++    extended_itu_materials_properties = {
++        "plastic": {(1.0, 100.): (2.4, 0.0, 0.002, 1.1)},
++        'fabric': {(1.0, 100.): (1.8, 0.0, 0.0015, 1.2)},
++        "leather": {(1.0, 100.): (2.1, 0.0, 0.003, 1.1)},
++        "carpet": {(1.0, 100.): (1.5, 0.0, 0.001, 1.3)},
++        "paper": {(1.0, 100.): (2.0, 0.0, 0.0025, 1.15)},
++        "rubber": {(1.0, 100.): (2.8, 0.0, 0.004, 1.2)},
++        "wax": {(1.0, 100.): (2.2, 0.0, 0.001, 1.0)},
++        "wicker": {(1.0, 100.): (1.85, 0.0, 0.003, 1.1)},
++        "ceramic": {(1.0, 100.): (8.5, 0.0, 0.015, 1.2)},
++        "food": {(1.0, 100.): (4.5, 0.0, 0.03, 1.4)},
++        # extrapolate built-in materials by valid frequency ranges
++        "concrete_ex": {(1.0, 100.): (5.24, 0.0, 0.0462, 0.7822)},
++        "brick_ex": {(1.0, 100.): (3.91, 0.0, 0.0238, 0.16)},
++        "plasterboard_ex": {(1.0, 100.): (2.73, 0.0, 0.0085, 0.9395)},
++        "wood_ex": {(0.001, 100.): (1.99, 0.0, 0.0047, 1.0718)},
++        "glass_ex": {(0.1, 100.): (6.31, 0.0, 0.0036, 1.3394),
++                     (220., 450.): (5.79, 0.0, 0.0004, 1.658)},
++        "ceiling_board_ex": {(1., 100.): (1.48, 0.0, 0.0011, 1.0750),
++                             (220., 450.): (1.52, 0.0, 0.0029, 1.029)},
++        "chipboard_ex": {(1.0, 100.): (2.58, 0.0, 0.0217, 0.7800)},
++        "plywood_ex": {(1.0, 100.): (2.71, 0.0, 0.33, 0.0)},
++        "marble_ex": {(1.0, 100.): (7.074, 0.0, 0.0055, 0.9262)},
++        "floorboard_ex": {(1.0, 100.): (3.66, 0.0, 0.0044, 1.3515)},
++        "metal_ex": {(1.0, 100.): (1.0, 0.0, 1e7, 0.0)},
++        "very_dry_ground_ex": {(1.0, 100.): (3.0, 0.0, 0.00015, 2.52)},
++        "medium_dry_ground_ex": {(1.0, 100.): (15.0, -0.1, 0.035, 1.63)},
++        "wet_ground_ex": {(1.0, 100.): (30.0, -0.4, 0.15, 1.30)}
++    }
++
++    def itu_freq_cb(f, name, props):
++        f_ghz = f / 1e9
++
++        # Extract the properties to use according to the frequency
++        # If the frequency is in none of the valid ranges, an exception is raised
++        valid_freq = False
++        for f_ranges, params in props.items():
++            if f_ranges[0] < f_ghz < f_ranges[1]:
++                a, b, c, d = params
++                valid_freq = True
++                break
++        if not valid_freq:
++            msg = f"Properties of ITU material '{name}' are not defined for" \
++                  " this frequency"
++            raise ValueError(msg)
++
++        # Evaluate the material properties
++        eta_r = a * np.power(f_ghz, b)
++        sigma = c * np.power(f_ghz, d)
++
++        return eta_r, sigma
++
++    for material_name, material_freq_parameters in extended_itu_materials_properties.items():
++        rm = RadioMaterial(
++            f"itu_{material_name}",
++            frequency_update_callback=partial(itu_freq_cb, name=material_name, props=material_freq_parameters),
++            dtype=dtype
++        )
++        scene.Scene().add(rm)
+\ No newline at end of file
+diff --git a/sionna/rt/solver_base.py b/sionna/rt/solver_base.py
+index e0e8b7f..4eed6a2 100644
+--- a/sionna/rt/solver_base.py
++++ b/sionna/rt/solver_base.py
+@@ -568,9 +568,17 @@ class SolverBase:
+
+         # Extract vertices of every triangle
+         # [num_prim, 3]
+-        v0 = self._primitives[:,0,:]
+-        v1 = self._primitives[:,1,:]
+-        v2 = self._primitives[:,2,:]
++        # Use tf.gather instead of [:, k, :] on the tf.Variable: Variable
++        # indexing constructs a ``strided_slice.<locals>.assign`` closure
++        # that captures the Variable, and that closure persists in TF's
++        # internal state long after the SolverBase that owns it is gone.
++        # The result is a steady accumulation of mesh Variables (one set
++        # per scene swap) -- visible as ~50 MB/step growth on multi-scene
++        # training runs. tf.gather has no .assign affordance and avoids
++        # the closure entirely.
++        v0 = tf.gather(self._primitives, 0, axis=1)
++        v1 = tf.gather(self._primitives, 1, axis=1)
++        v2 = tf.gather(self._primitives, 2, axis=1)
+
+         # List all edges
+         # [num_prim, 2 + 2 + 2, 3]
+diff --git a/sionna/rt/solver_paths.py b/sionna/rt/solver_paths.py
+index ef52a22..589970d 100644
+--- a/sionna/rt/solver_paths.py
++++ b/sionna/rt/solver_paths.py
+@@ -652,6 +652,11 @@ class SolverPaths(SolverBase):
+             # Extract the valid prefixes as paths
+             scat_paths, scat_paths_tmp = self._scat_prefixes_2_paths(scat_paths,
+                                                                 scat_paths_tmp)
++
++            # expose the candidates and hit points for face-consistent scattering
++            scat_paths_tmp.candidates_scat = candidates_scat
++            scat_paths_tmp.hit_points = hit_points
++
+         # Additional data required to compute the field
+         spec_paths_tmp.num_samples = num_samples
+         spec_paths_tmp.scat_keep_prob = tf.cast(scat_keep_prob, self._rdtype)
+@@ -1028,7 +1033,10 @@ class SolverPaths(SolverBase):
+                         diff_paths_tmp.to_dict(),
+                         scat_paths_tmp.to_dict() )
+         else:
+-            output = (sources, targets, all_paths.to_dict())
++            output = (sources, targets, all_paths.to_dict(),
++                      spec_paths_tmp.to_dict(),
++                      diff_paths_tmp.to_dict(),
++                      scat_paths_tmp.to_dict())
+         return output
+
+     ##################################################################
+@@ -3439,6 +3447,7 @@ class SolverPaths(SolverBase):
+         # Keep a path if at least one of its prefix is valid
+         # [num_targets, num_sources, num_paths]
+         prefix_mask_ = tf.reduce_any(prefix_mask, axis=0)
++        raw_prefix_mask_ = tf.identity(prefix_mask_)
+         prefix_mask_int_ = tf.cast(prefix_mask_, tf.int32)
+
+         # Maximum number of valid paths over all links
+@@ -3554,6 +3563,7 @@ class SolverPaths(SolverBase):
+         paths_tmp.normals = normals
+         paths_tmp.scat_prefix_mask = opt_prefix_mask
+         paths_tmp.scat_prefix_k_s,_ = normalize(targets_ - opt_hit_points)
++        paths_tmp.prefix_mask = raw_prefix_mask_
+
+         return paths, paths_tmp
+
+@@ -3624,7 +3634,8 @@ class SolverPaths(SolverBase):
+         mask = tf.logical_and(mask, random_mask)
+
+         # Discard paths invalid for all links
+-        valid_indices = tf.where(tf.reduce_any(mask, axis=(0,1,2)))[:,0]
++        discard_mask = tf.reduce_any(mask, axis=(0,1,2))
++        valid_indices = tf.where(discard_mask)[:,0]
+         # [num_targets, num_sources, max_num_paths]]
+         theta_t = tf.gather(theta_t, valid_indices, axis=2)
+         phi_t = tf.gather(phi_t, valid_indices, axis=2)
+@@ -3649,6 +3660,7 @@ class SolverPaths(SolverBase):
+         paths_tmp.k_tx = k_i[0]
+         paths_tmp.total_distance = total_distance
+         paths_tmp.normals = normals
++        paths_tmp.discard_mask = discard_mask
+
+         return paths, paths_tmp
+
+@@ -4346,8 +4358,15 @@ class SolverPaths(SolverBase):
+             # This assumes that both objects move at the same speed,
+             # which is justified as the wedge would otherwise be destroyed
+             valid_wedges_idx = tf.where(objects_mask, 0, paths.objects)
+-            valid_objects = tf.gather(self._wedges_objects[:,0],
+-                                      valid_wedges_idx, axis=0)
++            # Use tf.gather instead of [:, 0] indexing on the tf.Variable:
++            # the [:, 0] form creates a strided_slice.assign closure that
++            # captures the Variable and prevents Python GC from reclaiming
++            # the mesh data when the scene is reloaded. See solver_base.py's
++            # _extract_wedges fix for full context.
++            valid_objects = tf.gather(
++                tf.gather(self._wedges_objects, 0, axis=1),
++                valid_wedges_idx, axis=0,
++            )
+         else:
+             valid_objects = tf.where(objects_mask, 0, paths.objects)
+         # [max_depth, num_targets, num_sources, max_num_paths, 3]
+
+diff --git a/sionna/rt/scene.py b/sionna/rt/scene.py
+index fb46c99..cfac5c1 100644
+--- a/sionna/rt/scene.py
++++ b/sionna/rt/scene.py
+@@ -9,7 +9,6 @@ receivers, as well as cameras.
+ """
+
+ import os
+-from importlib_resources import files
+
+ import matplotlib
+ import matplotlib.pyplot as plt
+@@ -33,7 +32,6 @@ from .previewer import InteractiveDisplay
+ from .renderer import render, coverage_map_color_mapping
+ from .utils import expand_to_rank
+ from .paths import Paths
+-from . import scenes
+
+
+ class Scene:
+@@ -57,7 +55,7 @@ class Scene:
+
+     .. code-block:: Python
+
+-        scene = load_scene(sionna.rt.scene.munich)
++        scene = load_scene("path/to/scene.xml")
+         scene.preview()
+
+     .. figure:: ../figures/scene_preview.png
+@@ -2057,103 +2055,4 @@ def load_scene(filename=None, dtype=tf.complex64):
+         filename = "__empty__"
+     return Scene(filename, dtype=dtype)
+
+-#
+-# Module variables for example scene files
+-#
+-floor_wall = str(files(scenes).joinpath("floor_wall/floor_wall.xml"))
+-# pylint: disable=C0301
+-"""
+-Example scene containing a ground plane and a vertical wall
+-
+-.. figure:: ../figures/floor_wall.png
+-   :align: center
+-"""
+-
+-# pylint: disable=C0301
+-simple_street_canyon = str(files(scenes).joinpath("simple_street_canyon/simple_street_canyon.xml"))
+-"""
+-Example scene containing a few rectangular building blocks and a ground plane
+-
+-.. figure:: ../figures/street_canyon.png
+-   :align: center
+-"""
+-
+-# pylint: disable=C0301
+-simple_street_canyon_with_cars = str(files(scenes).joinpath("simple_street_canyon_with_cars/simple_street_canyon_with_cars.xml"))
+-"""
+-Example scene containing a few rectangular building blocks and a ground plane as well as some cars
+-
+-.. figure:: ../figures/street_canyon_with_cars.png
+-   :align: center
+-"""
+-
+-etoile = str(files(scenes).joinpath("etoile/etoile.xml"))
+-# pylint: disable=C0301
+-"""
+-Example scene containing the area around the Arc de Triomphe in Paris
+-The scene was created with data downloaded from `OpenStreetMap <https://www.openstreetmap.org>`_ and
+-the help of `Blender <https://www.blender.org>`_ and the `Blender-OSM <https://github.com/vvoovv/blender-osm>`_
+-and `Mitsuba Blender <https://github.com/mitsuba-renderer/mitsuba-blender>`_ add-ons.
+-The data is licensed under the `Open Data Commons Open Database License (ODbL) <https://openstreetmap.org/copyright>`_.
+-
+-.. figure:: ../figures/etoile.png
+-   :align: center
+-"""
+-
+-munich = str(files(scenes).joinpath("munich/munich.xml"))
+-# pylint: disable=C0301
+-"""
+-Example scene containing the area around the Frauenkirche in Munich
+-The scene was created with data downloaded from `OpenStreetMap <https://www.openstreetmap.org>`_ and
+-the help of `Blender <https://www.blender.org>`_ and the `Blender-OSM <https://github.com/vvoovv/blender-osm>`_
+-and `Mitsuba Blender <https://github.com/mitsuba-renderer/mitsuba-blender>`_ add-ons.
+-The data is licensed under the `Open Data Commons Open Database License (ODbL) <https://openstreetmap.org/copyright>`_.
+-
+-.. figure:: ../figures/munich.png
+-   :align: center
+-"""
+-
+-simple_wedge = str(files(scenes).joinpath("simple_wedge/simple_wedge.xml"))
+-# pylint: disable=C0301
+-r"""
+-Example scene containing a wedge with a :math:`90^{\circ}` opening angle
+-
+-.. figure:: ../figures/simple_wedge.png
+-   :align: center
+-"""
+-
+-simple_reflector = str(files(scenes).joinpath("simple_reflector/simple_reflector.xml"))
+-# pylint: disable=C0301
+-r"""
+-Example scene containing a metallic square
+-
+-.. figure:: ../figures/simple_reflector.png
+-   :align: center
+-"""
+-
+-double_reflector = str(files(scenes).joinpath("double_reflector/double_reflector.xml"))
+-# pylint: disable=C0301
+-r"""
+-Example scene containing two metallic squares
+-
+-.. figure:: ../figures/double_reflector.png
+-   :align: center
+-"""
+-
+-triple_reflector = str(files(scenes).joinpath("triple_reflector/triple_reflector.xml"))
+-# pylint: disable=C0301
+-r"""
+-Example scene containing three metallic rectangles
+-
+-.. figure:: ../figures/triple_reflector.png
+-   :align: center
+-"""
+-
+-box = str(files(scenes).joinpath("box/box.xml"))
+-# pylint: disable=C0301
+-r"""
+-Example scene containing a metallic box
+-
+-.. figure:: ../figures/box.png
+-   :align: center
+-"""
++# WaveVerse distribution: stock example scenes and their path aliases are omitted.

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "waveverse-sim"
+version = "0.1.0"
+description = "Phase-coherent RF simulation with bundled patched Sionna"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10,<3.12"
+dependencies = [
+  "sionna==0.19.2", "numpy<2", "trimesh", "scipy", "pillow", "matplotlib",
+]
+
+[project.optional-dependencies]
+cuda = ["tensorflow[and-cuda]==2.15.1", "cupy-cuda12x==13.4.0"]
+
+[project.urls]
+Repository = "https://github.com/penn-waves-lab/WaveVerse-Sim"
+Paper = "https://arxiv.org/abs/2508.12176"
+Project = "https://waves.seas.upenn.edu/projects/waveverse/"
+
+[project.scripts]
+waveverse-spatial = "waveverse_sim.spatial:main"
+waveverse-temporal = "waveverse_sim.temporal:main"
+waveverse-plot-doppler = "waveverse_sim.plot_doppler:main"
+
+[tool.setuptools.package-data]
+waveverse_sim = ["kernels/*.cu"]
+
+[tool.setuptools.packages.find]
+include = ["waveverse_sim*"]
+
+# Use editable installation from a source checkout: data/ is a checkout asset,
+# not wheel package data. Install third_party/sionna first (see environment.yml).
